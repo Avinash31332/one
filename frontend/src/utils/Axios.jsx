@@ -1,12 +1,14 @@
 import axios from "axios";
 
 const Axios = axios.create({
-  baseURL: "http://localhost:3000", // Replace with your actual API URL
+  baseURL: "https://one-6hcr.onrender.com", // Replace with your actual API URL
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-//https://testing1-backend.onrender.com
+//currently using ---> https://one-6hcr.onrender.com
 
 export default Axios;
+
+//https://testing1-backend.onrender.com
