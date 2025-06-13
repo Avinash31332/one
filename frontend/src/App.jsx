@@ -29,6 +29,7 @@ function App() {
       <div>
         <Routes>
           {/* admin routes */}
+          <Route path={"/"} element={<AdminAuth />} />
           <Route path={"/admin/students"} element={<ViewStudents />} />
           <Route path={"/admin/login"} element={<AdminLogin />} />
           <Route path={"/admin/auth"} element={<AdminAuth />} />
