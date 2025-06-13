@@ -1,0 +1,35 @@
+
+/* ManageData.jsx */
+.create-data-buttons{
+    color: rgb(0, 101, 253);
+    transition: all .2s ease-in-out;
+    box-shadow: 0 0px 5px rgba(8, 112, 203, 0.09);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+.create-data-buttons p{
+    transition: all .3s ease-in-out;
+    position: absolute;
+    transform: translateY(30px);
+    opacity: 0;
+}
+.create-data-buttons:hover p{
+    transform: translateY(0px);
+    opacity: 1;
+}
+.create-data-buttons:hover .icon{
+    opacity: 1;
+    transition: all .3s ease-in-out;
+}
+.create-data-buttons:hover .icon{
+    opacity: .2;
+    transform: translateX(-30px) scale(1.3);
+}
+.create-data-buttons:hover{
+    background-color: rgb(0, 101, 253);
+    color: white;
+    border-radius: 50px;
+    box-shadow: 0 0px 5px rgba(0, 136, 255, 0.499);
+}

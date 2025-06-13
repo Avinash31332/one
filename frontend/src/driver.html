@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniBus Driver | Professional Interface</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3a0ca3;
+            --success: #4cc9f0;
+            --danger: #f72585;
+            --dark: #2b2d42;
+            --light: #f8f9fa;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: var(--light);
+            color: var(--dark);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .app-header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .header-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .header-btn:hover {
+            transform: scale(1.1);
+        }
+
+        /* Map */
+        #map {
+            position: absolute;
+            top: 60px;
+            bottom: 60px;
+            width: 100%;
+            z-index: 1;
+        }
+
+        /* Floating Controls */
+        .floating-controls {
+            position: fixed;
+            bottom: 70px;
+            right: 15px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .control-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: white;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .control-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        /* Enhanced Control Panel */
+        .control-panel {
+            position: fixed;
+            bottom: -400px;
+            left: 0;
+            width: 100%;
+            background: white;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.15);
+            padding: 20px;
+            z-index: 1001;
+            transition: transform 0.3s ease-out;
+        }
+
+        .control-panel.open {
+            transform: translateY(-400px);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .panel-title {
+            font-weight: 600;
+            color: var(--dark);
+            font-size: 1.1rem;
+        }
+
+        .close-panel {
+            position: absolute;
+            right: 0;
+            top: -5px;
+            background: none;
+            border: none;
+            font-size: 1.3rem;
+            color: #888;
+            cursor: pointer;
+            padding: 5px;
+            transition: color 0.2s;
+        }
+
+        .close-panel:hover {
+            color: var(--danger);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-size: 1rem;
+            background-color: white;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+        }
+
+        .status-info {
+            background: rgba(67,97,238,0.05);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 0.9rem;
+            border-left: 3px solid var(--primary);
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .status-label {
+            color: #666;
+        }
+
+        .status-value {
+            font-weight: 500;
+            color: var(--dark);
+        }
+
+        /* Action Button */
+        .action-btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 8px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            font-weight: 500;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: background-color 0.2s;
+        }
+
+        .action-btn:hover {
+            background-color: var(--secondary);
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            background: white;
+            padding: 10px 0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #888;
+            font-size: 0.7rem;
+            text-decoration: none;
+        }
+
+        .nav-item i {
+            font-size: 1.4rem;
+            margin-bottom: 3px;
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+        }
+
+        /* Professional Bus Marker */
+        .bus-marker {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary);
+            border: 2px solid white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .bus-marker:hover {
+            transform: scale(1.1);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+        }
+
+        .bus-marker i {
+            color: white;
+            font-size: 14px;
+            position: relative;
+        }
+
+        .bus-marker::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 8px solid var(--primary);
+        }
+
+        /* Pulse animation for active tracking */
+        .bus-marker.pulse {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(67, 97, 238, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(67, 97, 238, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(67, 97, 238, 0);
+            }
+        }
+
+        /* Notifications */
+        .notification {
+            position: fixed;
+            top: 70px;
+            right: 15px;
+            background: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateX(200%);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .notification.error {
+            border-left: 4px solid var(--danger);
+        }
+
+        .notification-icon {
+            font-size: 1.2rem;
+        }
+
+        .success .notification-icon {
+            color: var(--success);
+        }
+
+        .error .notification-icon {
+            color: var(--danger);
+        }
+
+        .notification-content {
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-title">
+            <i class="fas fa-bus"></i>
+            <span>UniBus Driver</span>
+        </div>
+        <div class="header-actions">
+            <button class="header-btn" id="notifyBtn">
+                <i class="fas fa-bell"></i>
+            </button>
+            <button class="header-btn" id="helpBtn">
+                <i class="fas fa-question"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Map -->
+    <div id="map"></div>
+
+    <!-- Floating Controls -->
+    <div class="floating-controls">
+        <div class="control-btn" id="locateBtn">
+            <i class="fas fa-location-arrow"></i>
+        </div>
+        <div class="control-btn" id="panelToggleBtn">
+            <i class="fas fa-sliders-h"></i>
+        </div>
+    </div>
+
+    <!-- Enhanced Control Panel -->
+    <div class="control-panel" id="controlPanel">
+        <div class="panel-header">
+            <h3 class="panel-title">Driver Controls</h3>
+            <button class="close-panel" id="closePanelBtn" aria-label="Close panel">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="busNumber">Bus Number</label>
+            <select class="form-select" id="busNumber">
+                <option value="UB101">UB101 - Campus Express</option>
+                <option value="UB102">UB102 - Science Park</option>
+                <option value="UB103">UB103 - Downtown Loop</option>
+                <option value="UB104">UB104 - Night Shuttle</option>
+            </select>
+        </div>
+
+        <div class="status-info">
+            <div class="status-row">
+                <span class="status-label">Current Location:</span>
+                <span class="status-value" id="locationStatus">Acquiring GPS...</span>
+            </div>
+            <div class="status-row">
+                <span class="status-label">Last Update:</span>
+                <span class="status-value" id="lastUpdate">--:--:--</span>
+            </div>
+            <div class="status-row">
+                <span class="status-label">Status:</span>
+                <span class="status-value" id="connectionStatus">Active</span>
+            </div>
+        </div>
+
+        <button class="action-btn" id="updateBtn">
+            <i class="fas fa-sync-alt"></i> Update Location
+        </button>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="#" class="nav-item">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </a>
+        <a href="#" class="nav-item active">
+            <i class="fas fa-map-marked-alt"></i>
+            <span>Map</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-route"></i>
+            <span>Routes</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+        </a>
+    </nav>
+
+    <!-- Notification System -->
+    <div class="notification" id="notification">
+        <i class="fas fa-check-circle notification-icon"></i>
+        <div class="notification-content">Location updated successfully</div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Initialize the map
+        const map = L.map('map').setView([51.505, -0.09], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // DOM Elements
+        const locateBtn = document.getElementById('locateBtn');
+        const panelToggleBtn = document.getElementById('panelToggleBtn');
+        const controlPanel = document.getElementById('controlPanel');
+        const closePanelBtn = document.getElementById('closePanelBtn');
+        const updateBtn = document.getElementById('updateBtn');
+        const busNumberSelect = document.getElementById('busNumber');
+        const locationStatus = document.getElementById('locationStatus');
+        const lastUpdate = document.getElementById('lastUpdate');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const notification = document.getElementById('notification');
+        const notifyBtn = document.getElementById('notifyBtn');
+        const helpBtn = document.getElementById('helpBtn');
+
+        // App State
+        let busMarker = null;
+        let currentPosition = null;
+        let isTracking = false;
+        let watchId = null;
+
+        // Professional Bus Icon
+        function createBusIcon() {
+            const marker = document.createElement('div');
+            marker.className = 'bus-marker';
+            if (isTracking) marker.classList.add('pulse');
+            
+            const icon = document.createElement('i');
+            icon.className = 'fas fa-bus';
+            marker.appendChild(icon);
+
+            return L.divIcon({
+                className: 'bus-marker-container',
+                html: marker.outerHTML,
+                iconSize: [32, 32],
+                iconAnchor: [16, 32],
+                popupAnchor: [0, -32]
+            });
+        }
+
+        // Update Bus Marker
+        function updateBusMarker(lat, lng) {
+            if (busMarker) {
+                map.removeLayer(busMarker);
+            }
+            
+            busMarker = L.marker([lat, lng], {
+                icon: createBusIcon(),
+                zIndexOffset: 1000
+            }).addTo(map).bindPopup(`
+                <div style="font-weight: 600; color: var(--primary); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-bus"></i> 
+                    <span>Bus ${busNumberSelect.value}</span>
+                </div>
+                <div style="font-size: 0.9rem; line-height: 1.4;">
+                    <div><strong>Location:</strong> ${lat.toFixed(6)}, ${lng.toFixed(6)}</div>
+                    <div><strong>Last update:</strong> ${new Date().toLocaleTimeString()}</div>
+                    <div><strong>Status:</strong> ${isTracking ? 'Active Tracking' : 'Manual Update'}</div>
+                </div>
+            `);
+            
+            // Smooth pan to location
+            map.flyTo([lat, lng], 15, {
+                duration: 1
+            });
+        }
+
+        // Show Notification
+        function showNotification(message, type = 'success') {
+            const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+            notification.innerHTML = `
+                <i class="fas ${icon} notification-icon"></i>
+                <div class="notification-content">${message}</div>
+            `;
+            notification.className = `notification ${type} show`;
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Send Location to Server (simulated)
+        async function sendLocationToServer(lat, lng) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    resolve({
+                        status: 'success',
+                        timestamp: new Date().toISOString()
+                    });
+                }, 500);
+            });
+        }
+
+        // Handle Location Update
+        async function handleLocationUpdate(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            currentPosition = { lat, lng };
+            
+            // Update UI
+            updateBusMarker(lat, lng);
+            locationStatus.textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+            lastUpdate.textContent = new Date().toLocaleTimeString();
+            
+            try {
+                // Show updating state
+                updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+                
+                // Send to server
+                await sendLocationToServer(lat, lng);
+                
+                // Show success
+                showNotification('Location updated', 'success');
+                connectionStatus.textContent = 'Active';
+                updateBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Update Location';
+                
+            } catch (error) {
+                showNotification('Update failed', 'error');
+                connectionStatus.textContent = 'Connection Issue';
+                updateBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Update Location';
+            }
+        }
+
+        // Handle Location Error
+        function handleLocationError(error) {
+            let message = 'Location error: ';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    message = 'Please enable location access';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message = 'Location unavailable';
+                    break;
+                case error.TIMEOUT:
+                    message = 'Location request timed out';
+                    break;
+                default:
+                    message = 'Location error occurred';
+            }
+            
+            showNotification(message, 'error');
+            locationStatus.textContent = 'Location unavailable';
+            connectionStatus.textContent = 'GPS Issue';
+        }
+
+        // Start Location Tracking
+        function startTracking() {
+            if (!navigator.geolocation) {
+                showNotification('Geolocation not supported', 'error');
+                return;
+            }
+            
+            // Stop any existing tracking
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+            }
+            
+            // Start new tracking
+            watchId = navigator.geolocation.watchPosition(
+                handleLocationUpdate,
+                handleLocationError,
+                {
+                    enableHighAccuracy: true,
+                    maximumAge: 0,
+                    timeout: 10000
+                }
+            );
+            
+            isTracking = true;
+            locateBtn.classList.add('active');
+            showNotification('Live tracking started', 'success');
+            
+            // Update marker with pulse effect
+            if (currentPosition) {
+                updateBusMarker(currentPosition.lat, currentPosition.lng);
+            }
+        }
+
+        // Stop Location Tracking
+        function stopTracking() {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            
+            isTracking = false;
+            locateBtn.classList.remove('active');
+            showNotification('Live tracking stopped', 'success');
+            
+            // Update marker to remove pulse effect
+            if (currentPosition) {
+                updateBusMarker(currentPosition.lat, currentPosition.lng);
+            }
+        }
+
+        // Toggle Control Panel
+        function togglePanel() {
+            controlPanel.classList.toggle('open');
+            panelToggleBtn.classList.toggle('active');
+        }
+
+        // Event Listeners
+        locateBtn.addEventListener('click', () => {
+            if (isTracking) {
+                stopTracking();
+            } else {
+                startTracking();
+            }
+        });
+
+        panelToggleBtn.addEventListener('click', togglePanel);
+        closePanelBtn.addEventListener('click', togglePanel);
+        updateBtn.addEventListener('click', () => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    handleLocationUpdate,
+                    handleLocationError,
+                    { enableHighAccuracy: true }
+                );
+            }
+        });
+
+        busNumberSelect.addEventListener('change', () => {
+            if (currentPosition) {
+                updateBusMarker(currentPosition.lat, currentPosition.lng);
+            }
+        });
+
+        notifyBtn.addEventListener('click', () => {
+            showNotification('No new notifications', 'success');
+        });
+
+        helpBtn.addEventListener('click', () => {
+            showNotification('Contact support: driver-help@unibus.edu', 'success');
+        });
+
+        // Initialize with a single location update
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                handleLocationUpdate,
+                handleLocationError,
+                { enableHighAccuracy: true }
+            );
+        }
+
+        // Add sample bus stops for context
+        function addSampleStops() {
+            const stops = [
+                { name: "Main Campus", lat: 51.505, lng: -0.09 },
+                { name: "Science Park", lat: 51.51, lng: -0.1 },
+                { name: "Student Center", lat: 51.503, lng: -0.08 }
+            ];
+
+            stops.forEach(stop => {
+                L.marker([stop.lat, stop.lng], {
+                    icon: L.divIcon({
+                        className: 'bus-stop-icon',
+                        html: '<i class="fas fa-map-pin" style="color:#f72585;font-size:24px;"></i>',
+                        iconSize: [24, 24]
+                    })
+                }).addTo(map).bindPopup(`<b>${stop.name}</b>`);
+            });
+        }
+
+        setTimeout(addSampleStops, 1000);
+    </script>
+</body>
+</html>

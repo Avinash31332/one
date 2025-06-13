@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniBus Student | Professional Interface</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3a0ca3;
+            --success: #4cc9f0;
+            --danger: #f72585;
+            --warning: #f8961e;
+            --dark: #2b2d42;
+            --light: #f8f9fa;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: var(--light);
+            color: var(--dark);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .app-header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .header-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .header-btn:hover {
+            transform: scale(1.1);
+        }
+
+        /* Map */
+        #map {
+            position: absolute;
+            top: 60px;
+            bottom: 60px;
+            width: 100%;
+            z-index: 1;
+        }
+
+        /* Floating Controls */
+        .floating-controls {
+            position: fixed;
+            bottom: 70px;
+            right: 15px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .control-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: white;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .control-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        /* Enhanced Control Panel */
+        .control-panel {
+            position: fixed;
+            bottom: -400px;
+            left: 0;
+            width: 100%;
+            background: white;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.15);
+            padding: 20px;
+            z-index: 1001;
+            transition: transform 0.3s ease-out;
+        }
+
+        .control-panel.open {
+            transform: translateY(-400px);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .panel-title {
+            font-weight: 600;
+            color: var(--dark);
+            font-size: 1.1rem;
+        }
+
+        .close-panel {
+            position: absolute;
+            right: 0;
+            top: -5px;
+            background: none;
+            border: none;
+            font-size: 1.3rem;
+            color: #888;
+            cursor: pointer;
+            padding: 5px;
+            transition: color 0.2s;
+        }
+
+        .close-panel:hover {
+            color: var(--danger);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-size: 1rem;
+            background-color: white;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+        }
+
+        .status-info {
+            background: rgba(67,97,238,0.05);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 0.9rem;
+            border-left: 3px solid var(--primary);
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .status-label {
+            color: #666;
+        }
+
+        .status-value {
+            font-weight: 500;
+            color: var(--dark);
+        }
+
+        /* Action Button */
+        .action-btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 8px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            font-weight: 500;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: background-color 0.2s;
+        }
+
+        .action-btn:hover {
+            background-color: var(--secondary);
+        }
+
+        /* Secondary Action Button */
+        .action-btn.secondary {
+            background-color: #f8f9fa;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            background: white;
+            padding: 10px 0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #888;
+            font-size: 0.7rem;
+            text-decoration: none;
+        }
+
+        .nav-item i {
+            font-size: 1.4rem;
+            margin-bottom: 3px;
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+        }
+
+        /* Enhanced User Marker */
+        .user-marker {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid var(--primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            animation: pulse 2s infinite;
+        }
+
+        .user-marker i {
+            color: var(--primary);
+            font-size: 14px;
+        }
+
+        .user-marker::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 10px solid var(--primary);
+        }
+
+        .user-marker::before {
+            content: '';
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: rgba(67, 97, 238, 0.3);
+            border-radius: 50%;
+            animation: ripple 2s infinite;
+            z-index: -1;
+        }
+
+        /* Enhanced Bus Marker */
+        .bus-marker {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: var(--primary);
+            border: 3px solid white;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transform: rotate(0deg);
+            transition: transform 0.5s ease;
+        }
+
+        .bus-marker i {
+            color: white;
+            font-size: 16px;
+        }
+
+        .bus-marker::after {
+            content: attr(data-route);
+            position: absolute;
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            color: var(--primary);
+            font-size: 10px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            white-space: nowrap;
+        }
+
+        .bus-marker.status-delayed {
+            background: var(--warning);
+        }
+
+        .bus-marker.status-early {
+            background: var(--success);
+        }
+
+        /* Bus Stop Marker */
+        .bus-stop-marker {
+            width: 24px;
+            height: 24px;
+            border-radius: 50% 50% 50% 0;
+            background: var(--danger);
+            border: 2px solid white;
+            transform: rotate(-45deg);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        .bus-stop-marker::after {
+            content: '';
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: white;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(45deg);
+        }
+
+        /* Route Info */
+        .route-info {
+            display: none;
+            background: rgba(67,97,238,0.05);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 0.9rem;
+            border-left: 3px solid var(--primary);
+        }
+
+        .route-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .stat-item {
+            background: white;
+            padding: 8px;
+            border-radius: 6px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 1rem;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: #666;
+        }
+
+        .route-instructions {
+            max-height: 150px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .instruction-step {
+            display: flex;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            align-items: center;
+        }
+
+        .step-number {
+            width: 20px;
+            height: 20px;
+            background: rgba(67,97,238,0.1);
+            color: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        .step-text {
+            font-size: 0.85rem;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes ripple {
+            0% { transform: scale(0.8); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+
+        @keyframes moveBus {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+            100% { transform: translateY(0); }
+        }
+
+        /* Loading spinner */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Notification System */
+        .notification {
+            position: fixed;
+            top: 70px;
+            right: 15px;
+            background: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateX(200%);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .notification.error {
+            border-left: 4px solid var(--danger);
+        }
+
+        .notification.warning {
+            border-left: 4px solid var(--warning);
+        }
+
+        .notification-icon {
+            font-size: 1.2rem;
+        }
+
+        .success .notification-icon {
+            color: var(--success);
+        }
+
+        .error .notification-icon {
+            color: var(--danger);
+        }
+
+        .warning .notification-icon {
+            color: var(--warning);
+        }
+
+        .notification-content {
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-title">
+            <i class="fas fa-bus"></i>
+            <span>UniBus Student</span>
+        </div>
+        <div class="header-actions">
+            <button class="header-btn" id="notifyBtn">
+                <i class="fas fa-bell"></i>
+            </button>
+            <button class="header-btn" id="helpBtn">
+                <i class="fas fa-question"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Map -->
+    <div id="map"></div>
+
+    <!-- Floating Controls -->
+    <div class="floating-controls">
+        <div class="control-btn" id="locateBtn">
+            <i class="fas fa-location-arrow"></i>
+        </div>
+        <div class="control-btn" id="panelToggleBtn">
+            <i class="fas fa-sliders-h"></i>
+        </div>
+    </div>
+
+    <!-- Enhanced Control Panel -->
+    <div class="control-panel" id="controlPanel">
+        <div class="panel-header">
+            <h3 class="panel-title">Bus Tracking</h3>
+            <button class="close-panel" id="closePanelBtn" aria-label="Close panel">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="busNumber">Select Bus</label>
+            <select class="form-select" id="busNumber">
+                <option value="">Choose your bus...</option>
+                <option value="UB101">UB101 - Campus Express</option>
+                <option value="UB102">UB102 - Science Park</option>
+                <option value="UB103">UB103 - Downtown Loop</option>
+                <option value="UB104">UB104 - Night Shuttle</option>
+            </select>
+        </div>
+
+        <button class="action-btn" id="trackBusBtn">
+            <i class="fas fa-search-location"></i> Track Bus
+        </button>
+        <button class="action-btn secondary" id="getDirectionsBtn" disabled>
+            <i class="fas fa-route"></i> Get Directions
+        </button>
+
+        <div class="status-info">
+            <div class="status-row">
+                <span class="status-label">Bus Status:</span>
+                <span class="status-value" id="busStatus">No bus selected</span>
+            </div>
+            <div class="status-row">
+                <span class="status-label">Last Update:</span>
+                <span class="status-value" id="lastUpdate">--:--:--</span>
+            </div>
+            <div class="status-row">
+                <span class="status-label">Connection:</span>
+                <span class="status-value" id="connectionStatus">Active</span>
+            </div>
+        </div>
+
+        <div id="routeInfo" class="route-info">
+            <div class="route-stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="routeDistance">-</div>
+                    <div class="stat-label">Distance</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="routeTime">-</div>
+                    <div class="stat-label">ETA</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="arrivalTime">-</div>
+                    <div class="stat-label">Arrival</div>
+                </div>
+            </div>
+            
+            <div style="font-size: 0.9rem; margin: 10px 0 5px; color: var(--dark);">
+                <i class="fas fa-list-ol"></i> Navigation Steps
+            </div>
+            <div class="route-instructions" id="routeInstructions">
+                <div style="text-align: center; color: #666; font-size: 0.85rem;">
+                    Select "Get Directions" to see navigation steps
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="#" class="nav-item">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </a>
+        <a href="#" class="nav-item active">
+            <i class="fas fa-map-marked-alt"></i>
+            <span>Map</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-route"></i>
+            <span>Routes</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+        </a>
+    </nav>
+
+    <!-- Notification System -->
+    <div class="notification" id="notification">
+        <i class="fas fa-check-circle notification-icon"></i>
+        <div class="notification-content">Location updated successfully</div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    <script>
+        // Initialize the map
+        const map = L.map('map').setView([51.505, -0.09], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // DOM Elements
+        const locateBtn = document.getElementById('locateBtn');
+        const panelToggleBtn = document.getElementById('panelToggleBtn');
+        const controlPanel = document.getElementById('controlPanel');
+        const closePanelBtn = document.getElementById('closePanelBtn');
+        const trackBusBtn = document.getElementById('trackBusBtn');
+        const getDirectionsBtn = document.getElementById('getDirectionsBtn');
+        const busNumberSelect = document.getElementById('busNumber');
+        const busStatus = document.getElementById('busStatus');
+        const lastUpdate = document.getElementById('lastUpdate');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const routeDistance = document.getElementById('routeDistance');
+        const routeTime = document.getElementById('routeTime');
+        const arrivalTime = document.getElementById('arrivalTime');
+        const routeInstructions = document.getElementById('routeInstructions');
+        const routeInfo = document.getElementById('routeInfo');
+        const notification = document.getElementById('notification');
+        const notifyBtn = document.getElementById('notifyBtn');
+        const helpBtn = document.getElementById('helpBtn');
+
+        // App State
+        let busMarker = null;
+        let userMarker = null;
+        let currentBusLocation = null;
+        let studentPosition = null;
+        let isTracking = false;
+        let updateInterval = null;
+        let routingControl = null;
+        let lastBusPosition = null;
+
+        // Enhanced User Icon with direction indicator
+        function createUserIcon(rotation = 0) {
+            const marker = document.createElement('div');
+            marker.className = 'user-marker';
+            
+            const icon = document.createElement('i');
+            icon.className = 'fas fa-user';
+            marker.appendChild(icon);
+
+            // Add direction indicator if rotation is provided
+            if (rotation) {
+                const direction = document.createElement('div');
+                direction.className = 'direction-indicator';
+                direction.style.position = 'absolute';
+                direction.style.top = '-10px';
+                direction.style.left = '50%';
+                direction.style.transform = 'translateX(-50%)';
+                direction.style.width = '0';
+                direction.style.height = '0';
+                direction.style.borderLeft = '5px solid transparent';
+                direction.style.borderRight = '5px solid transparent';
+                direction.style.borderBottom = `10px solid ${rotation > 0 ? '#4cc9f0' : '#f72585'}`;
+                direction.style.filter = 'drop-shadow(0 1px 1px rgba(0,0,0,0.3))';
+                marker.appendChild(direction);
+            }
+
+            return L.divIcon({
+                className: 'user-marker-container',
+                html: marker.outerHTML,
+                iconSize: [32, 32],
+                iconAnchor: [16, 32],
+                popupAnchor: [0, -32]
+            });
+        }
+
+        // Enhanced Bus Icon with route number and status
+        function createBusIcon(busNumber, status = 'on-time') {
+            const marker = document.createElement('div');
+            marker.className = `bus-marker status-${status === 'delayed' ? 'delayed' : status === 'early' ? 'early' : 'on-time'}`;
+            marker.setAttribute('data-route', busNumber);
+            
+            const icon = document.createElement('i');
+            icon.className = 'fas fa-bus';
+            marker.appendChild(icon);
+
+            // Add subtle movement animation
+            marker.style.animation = 'moveBus 1s infinite';
+
+            return L.divIcon({
+                className: 'bus-marker-container',
+                html: marker.outerHTML,
+                iconSize: [36, 36],
+                iconAnchor: [18, 36],
+                popupAnchor: [0, -36]
+            });
+        }
+
+        // Bus Stop Icon
+        function createBusStopIcon() {
+            const marker = document.createElement('div');
+            marker.className = 'bus-stop-marker';
+            
+            return L.divIcon({
+                className: 'bus-stop-marker-container',
+                html: marker.outerHTML,
+                iconSize: [24, 24],
+                iconAnchor: [12, 24],
+                popupAnchor: [0, -24]
+            });
+        }
+
+        // Show Notification
+        function showNotification(message, type = 'success') {
+            const icon = type === 'success' ? 'fa-check-circle' : 
+                        type === 'error' ? 'fa-exclamation-circle' : 
+                        type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
+            
+            notification.innerHTML = `
+                <i class="fas ${icon} notification-icon"></i>
+                <div class="notification-content">${message}</div>
+            `;
+            notification.className = `notification ${type} show`;
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Format time
+        function formatTime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            
+            if (hours > 0) {
+                return `${hours}h ${minutes}m`;
+            }
+            return `${minutes} min`;
+        }
+
+        // Format distance
+        function formatDistance(meters) {
+            return (meters / 1000).toFixed(1) + ' km';
+        }
+
+        // Calculate arrival time
+        function calculateArrivalTime(seconds) {
+            const now = new Date();
+            const arrival = new Date(now.getTime() + seconds * 1000);
+            return arrival.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Calculate direction between two points
+        function calculateDirection(oldPos, newPos) {
+            if (!oldPos || !newPos) return 0;
+            
+            const dx = newPos.lng - oldPos.lng;
+            const dy = newPos.lat - oldPos.lat;
+            
+            // Calculate angle in radians then convert to degrees
+            return Math.atan2(dy, dx) * (180 / Math.PI);
+        }
+
+        // Fetch bus location from server (simulated)
+        async function fetchBusLocation(busNumber) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    // Simulate bus moving along a path with realistic movement
+                    const baseLat = 51.505;
+                    const baseLng = -0.09;
+                    const timeFactor = Date.now() / 20000;
+                    
+                    // Simulate bus moving in a loop
+                    const angle = timeFactor % (2 * Math.PI);
+                    const radius = 0.005;
+                    
+                    const lat = baseLat + Math.sin(angle) * radius;
+                    const lng = baseLng + Math.cos(angle) * radius;
+                    
+                    // Randomly determine if bus is delayed (20% chance)
+                    const isDelayed = Math.random() < 0.2;
+                    const isEarly = Math.random() < 0.1 && !isDelayed;
+                    
+                    resolve({
+                        lat: lat,
+                        lng: lng,
+                        timestamp: new Date().toISOString(),
+                        status: isDelayed ? 'delayed' : isEarly ? 'early' : 'on-time',
+                        speed: 30 + Math.random() * 20 // km/h
+                    });
+                }, 500);
+            });
+        }
+
+        // Track bus location
+        async function trackBus() {
+            const busNumber = busNumberSelect.value;
+            if (!busNumber) {
+                showNotification('Please select a bus first', 'error');
+                return;
+            }
+            
+            isTracking = true;
+            trackBusBtn.innerHTML = '<span class="loading"></span> Tracking...';
+            
+            // Clear previous interval if exists
+            if (updateInterval) clearInterval(updateInterval);
+            
+            // Check immediately
+            await checkBusLocation();
+            
+            // Then check every 10 seconds
+            updateInterval = setInterval(checkBusLocation, 10000);
+        }
+
+        // Check bus location
+        async function checkBusLocation() {
+            const busNumber = busNumberSelect.value;
+            if (!busNumber) return;
+            
+            try {
+                const location = await fetchBusLocation(busNumber);
+                
+                // Calculate direction if we have previous position
+                const direction = lastBusPosition ? 
+                    calculateDirection(lastBusPosition, location) : 0;
+                
+                currentBusLocation = location;
+                lastBusPosition = { lat: location.lat, lng: location.lng };
+                
+                // Update bus marker
+                if (busMarker) map.removeLayer(busMarker);
+                
+                busMarker = L.marker([location.lat, location.lng], {
+                    icon: createBusIcon(busNumber, location.status),
+                    zIndexOffset: 1000,
+                    rotationAngle: direction
+                }).addTo(map).bindPopup(`
+                    <div style="font-weight: 600; color: var(--primary); margin-bottom: 5px;">
+                        <i class="fas fa-bus"></i> Bus ${busNumber}
+                    </div>
+                    <div style="font-size: 0.9rem;">
+                        <div><strong>Status:</strong> <span style="color: ${
+                            location.status === 'delayed' ? 'var(--warning)' : 
+                            location.status === 'early' ? 'var(--success)' : 'var(--primary)'
+                        }">${
+                            location.status === 'delayed' ? 'Delayed' : 
+                            location.status === 'early' ? 'Ahead of schedule' : 'On time'
+                        }</span></div>
+                        <div><strong>Speed:</strong> ${location.speed.toFixed(0)} km/h</div>
+                        <div><strong>Updated:</strong> ${new Date(location.timestamp).toLocaleTimeString()}</div>
+                    </div>
+                `);
+                
+                // Center map on bus if not tracking user
+                if (!studentPosition) {
+                    map.flyTo([location.lat, location.lng], 15, { duration: 1 });
+                }
+                
+                // Update UI
+                busStatus.textContent = `Bus ${busNumber} (${location.status === 'delayed' ? 'Delayed' : location.status === 'early' ? 'Early' : 'On time'})`;
+                busStatus.style.color = location.status === 'delayed' ? 'var(--warning)' : 
+                                        location.status === 'early' ? 'var(--success)' : 'var(--primary)';
+                
+                lastUpdate.textContent = new Date(location.timestamp).toLocaleTimeString();
+                connectionStatus.textContent = 'Active';
+                getDirectionsBtn.disabled = false;
+                trackBusBtn.innerHTML = '<i class="fas fa-search-location"></i> Tracking Bus';
+                
+                showNotification(`Bus ${busNumber} location updated (${location.status})`, 
+                               location.status === 'delayed' ? 'warning' : 
+                               location.status === 'early' ? 'success' : 'success');
+                
+            } catch (error) {
+                console.error("Error fetching bus location:", error);
+                busStatus.textContent = 'Bus not available';
+                busStatus.style.color = 'var(--danger)';
+                connectionStatus.textContent = 'Error';
+                getDirectionsBtn.disabled = true;
+                trackBusBtn.innerHTML = '<i class="fas fa-search-location"></i> Track Bus';
+                
+                if (busMarker) {
+                    map.removeLayer(busMarker);
+                    busMarker = null;
+                }
+                
+                showNotification('Failed to get bus location', 'error');
+            }
+        }
+
+        // Get student's current location
+        function getStudentLocation() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    reject("Geolocation not supported");
+                    return;
+                }
+
+                getDirectionsBtn.innerHTML = '<span class="loading"></span> Locating...';
+                
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        const coords = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude,
+                            heading: position.coords.heading || 0
+                        };
+                        
+                        // Calculate direction if we have previous position
+                        const direction = studentPosition ? 
+                            calculateDirection(studentPosition, coords) : 0;
+                        
+                        // Update user marker
+                        if (userMarker) map.removeLayer(userMarker);
+                        
+                        userMarker = L.marker([coords.lat, coords.lng], {
+                            icon: createUserIcon(direction),
+                            zIndexOffset: 1000
+                        }).addTo(map).bindPopup(`
+                            <div style="font-weight: 600; color: var(--primary); margin-bottom: 5px;">
+                                <i class="fas fa-user"></i> Your Location
+                            </div>
+                            <div style="font-size: 0.9rem;">
+                                ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}
+                            </div>
+                        `);
+                        
+                        studentPosition = coords;
+                        resolve(coords);
+                    },
+                    error => {
+                        let message = 'Location error: ';
+                        switch(error.code) {
+                            case error.PERMISSION_DENIED:
+                                message = 'Please enable location access';
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                message = 'Location unavailable';
+                                break;
+                            case error.TIMEOUT:
+                                message = 'Location request timed out';
+                                break;
+                            default:
+                                message = 'Location error occurred';
+                        }
+                        
+                        reject(message);
+                    },
+                    { enableHighAccuracy: true, timeout: 10000 }
+                );
+            });
+        }
+
+        // Calculate route to bus
+        async function calculateRouteToBus() {
+            if (!currentBusLocation) {
+                showNotification('No bus location available', 'error');
+                return;
+            }
+            
+            try {
+                // Get student's current location
+                studentPosition = await getStudentLocation();
+                
+                // Remove previous route if exists
+                if (routingControl) {
+                    map.removeControl(routingControl);
+                }
+                
+                getDirectionsBtn.innerHTML = '<span class="loading"></span> Calculating...';
+                
+                // Calculate route using OSRM with custom style
+                routingControl = L.Routing.control({
+                    waypoints: [
+                        L.latLng(studentPosition.lat, studentPosition.lng),
+                        L.latLng(currentBusLocation.lat, currentBusLocation.lng)
+                    ],
+                    routeWhileDragging: false,
+                    showAlternatives: false,
+                    addWaypoints: false,
+                    draggableWaypoints: false,
+                    fitSelectedRoutes: true,
+                    show: false, // We'll show our own instructions
+                    lineOptions: {
+                        styles: [
+                            {
+                                color: '#4361ee',
+                                opacity: 0.8,
+                                weight: 6
+                            }
+                        ]
+                    },
+                    createMarker: function() { return null; } // No default markers
+                }).addTo(map);
+                
+                // Listen for route calculation
+                routingControl.on('routesfound', function(e) {
+                    const routes = e.routes;
+                    const route = routes[0];
+                    
+                    // Update route info
+                    routeDistance.textContent = formatDistance(route.summary.totalDistance);
+                                    // Display instructions
+                routeInstructions.innerHTML = '';
+                route.instructions.forEach((instruction, index) => {
+                    const step = document.createElement('div');
+                    step.className = 'instruction-step';
+                    step.innerHTML = `
+                        <div class="step-number">${index + 1}</div>
+                        <div class="step-text">${instruction.text}</div>
+                    `;
+                    routeInstructions.appendChild(step);
+                });
+                
+                routeInfo.style.display = 'block';
+                showNotification('Route calculated successfully', 'success');
+                getDirectionsBtn.innerHTML = '<i class="fas fa-route"></i> Directions Found';
+                
+                // Auto-scroll to the first instruction
+                if (routeInstructions.firstChild) {
+                    routeInstructions.firstChild.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            });
+            
+            // Handle routing errors
+            routingControl.on('routingerror', function(error) {
+                console.error("Routing error:", error);
+                showNotification("Could not calculate route", 'error');
+                getDirectionsBtn.innerHTML = '<i class="fas fa-route"></i> Get Directions';
+            });
+            
+        } catch (error) {
+            console.error("Routing error:", error);
+            showNotification("Could not calculate route: " + error, 'error');
+            getDirectionsBtn.innerHTML = '<i class="fas fa-route"></i> Get Directions';
+        }
+    }
+
+    // Locate user with improved accuracy
+    function locateUser() {
+        if (!navigator.geolocation) {
+            showNotification('Geolocation not supported', 'error');
+            return;
+        }
+        
+        locateBtn.innerHTML = '<span class="loading"></span>';
+        
+        // Use watchPosition for better accuracy with movement
+        const watchId = navigator.geolocation.watchPosition(
+            position => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                const heading = position.coords.heading || 0;
+                
+                studentPosition = { lat, lng, heading };
+                
+                // Calculate direction if we have previous position
+                let direction = 0;
+                if (userMarker) {
+                    const prevPos = userMarker.getLatLng();
+                    direction = calculateDirection(prevPos, { lat, lng });
+                }
+                
+                // Update user marker
+                if (userMarker) map.removeLayer(userMarker);
+                
+                userMarker = L.marker([lat, lng], {
+                    icon: createUserIcon(direction),
+                    zIndexOffset: 1000
+                }).addTo(map).bindPopup(`
+                    <div style="font-weight: 600; color: var(--primary); margin-bottom: 5px;">
+                        <i class="fas fa-user"></i> Your Location
+                    </div>
+                    <div style="font-size: 0.9rem;">
+                        ${lat.toFixed(6)}, ${lng.toFixed(6)}
+                        ${heading ? `<div>Heading: ${heading.toFixed(0)}°</div>` : ''}
+                    </div>
+                `);
+                
+                // Center map on user with smooth transition
+                map.flyTo([lat, lng], 17, { 
+                    duration: 0.5,
+                    easeLinearity: 0.25
+                });
+                
+                locateBtn.innerHTML = '<i class="fas fa-location-arrow"></i>';
+                showNotification('Location updated', 'success');
+            },
+            error => {
+                let message = 'Location error: ';
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        message = 'Please enable location access';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        message = 'Location unavailable';
+                        break;
+                    case error.TIMEOUT:
+                        message = 'Location request timed out';
+                        break;
+                    default:
+                        message = 'Location error occurred';
+                }
+                
+                locateBtn.innerHTML = '<i class="fas fa-location-arrow"></i>';
+                showNotification(message, 'error');
+                
+                // Clear the watch
+                navigator.geolocation.clearWatch(watchId);
+            },
+            { 
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            }
+        );
+    }
+
+    // Toggle Control Panel
+    function togglePanel() {
+        controlPanel.classList.toggle('open');
+        panelToggleBtn.classList.toggle('active');
+    }
+
+    // Add sample bus stops with realistic data
+    function addSampleStops() {
+        const stops = [
+            { 
+                name: "Main Campus", 
+                lat: 51.505, 
+                lng: -0.09,
+                routes: ["UB101", "UB102", "UB103"],
+                amenities: ["Seating", "Shelter", "Digital Display"]
+            },
+            { 
+                name: "Science Park", 
+                lat: 51.51, 
+                lng: -0.1,
+                routes: ["UB102", "UB104"],
+                amenities: ["Shelter", "USB Charging"]
+            },
+            { 
+                name: "Student Center", 
+                lat: 51.503, 
+                lng: -0.08,
+                routes: ["UB101", "UB103", "UB104"],
+                amenities: ["Seating", "Cafe", "Digital Display"]
+            },
+            { 
+                name: "North Campus", 
+                lat: 51.508, 
+                lng: -0.095,
+                routes: ["UB101", "UB104"],
+                amenities: ["Shelter"]
+            }
+        ];
+
+        stops.forEach(stop => {
+            const marker = L.marker([stop.lat, stop.lng], {
+                icon: createBusStopIcon(),
+                zIndexOffset: 500
+            }).addTo(map);
+            
+            // Enhanced popup content
+            const popupContent = document.createElement('div');
+            popupContent.innerHTML = `
+                <div style="font-weight: 600; color: var(--danger); margin-bottom: 5px;">
+                    <i class="fas fa-map-marker-alt"></i> ${stop.name}
+                </div>
+                <div style="font-size: 0.9rem; margin-bottom: 8px;">
+                    <div><strong>Serves routes:</strong> ${stop.routes.join(', ')}</div>
+                    <div><strong>Facilities:</strong> ${stop.amenities.join(', ')}</div>
+                </div>
+                <button style="width: 100%; padding: 6px; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    <i class="fas fa-bell"></i> Set Arrival Alert
+                </button>
+            `;
+            
+            // Add click handler for the button
+            popupContent.querySelector('button').addEventListener('click', () => {
+                showNotification(`Arrival alerts set for ${stop.name}`, 'success');
+            });
+            
+            marker.bindPopup(popupContent);
+        });
+    }
+
+    // Event Listeners
+    locateBtn.addEventListener('click', locateUser);
+    panelToggleBtn.addEventListener('click', togglePanel);
+    closePanelBtn.addEventListener('click', togglePanel);
+    trackBusBtn.addEventListener('click', trackBus);
+    getDirectionsBtn.addEventListener('click', calculateRouteToBus);
+    busNumberSelect.addEventListener('change', function() {
+        if (isTracking) {
+            trackBus();
+        }
+    });
+    notifyBtn.addEventListener('click', () => {
+        showNotification('No new notifications', 'success');
+    });
+    helpBtn.addEventListener('click', () => {
+        showNotification('Contact support: student-help@unibus.edu', 'success');
+    });
+
+    // Initialize the app
+    setTimeout(addSampleStops, 1000);
+    
+    // Add a welcome notification
+    setTimeout(() => {
+        showNotification('Welcome to UniBus Student! Track your bus in real-time', 'success');
+    }, 1500);
+
+    // Add route visualization between stops (simulated bus route)
+    function visualizeBusRoute() {
+        const routeCoordinates = [
+            [51.505, -0.09],  // Main Campus
+            [51.506, -0.092],
+            [51.507, -0.094],
+            [51.508, -0.095],  // North Campus
+            [51.509, -0.097],
+            [51.51, -0.1],     // Science Park
+            [51.509, -0.095],
+            [51.507, -0.09],
+            [51.505, -0.085],
+            [51.503, -0.08]     // Student Center
+        ];
+
+        const routeLine = L.polyline(routeCoordinates, {
+            color: '#4361ee',
+            weight: 4,
+            opacity: 0.7,
+            dashArray: '10, 10'
+        }).addTo(map);
+
+        // Add direction arrows along the route
+        for (let i = 0; i < routeCoordinates.length - 1; i++) {
+            const start = routeCoordinates[i];
+            const end = routeCoordinates[i + 1];
+            const midPoint = [
+                (start[0] + end[0]) / 2,
+                (start[1] + end[1]) / 2
+            ];
+            
+            const angle = Math.atan2(end[1] - start[1], end[0] - start[0]) * 180 / Math.PI;
+            
+            L.marker(midPoint, {
+                icon: L.divIcon({
+                    className: 'route-direction-arrow',
+                    html: '<i class="fas fa-arrow-right"></i>',
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10]
+                }),
+                rotationAngle: angle,
+                interactive: false
+            }).addTo(map);
+        }
+    }
+
+    // Call the route visualization function
+    setTimeout(visualizeBusRoute, 2000);
+
+    // Add real-time traffic data visualization (simulated)
+    function showTrafficConditions() {
+        // Simulated traffic hotspots
+        const trafficSpots = [
+            { lat: 51.507, lng: -0.092, severity: 'moderate' },
+            { lat: 51.509, lng: -0.098, severity: 'heavy' },
+            { lat: 51.504, lng: -0.085, severity: 'light' }
+        ];
+
+        trafficSpots.forEach(spot => {
+            const color = spot.severity === 'heavy' ? 'var(--danger)' : 
+                         spot.severity === 'moderate' ? 'var(--warning)' : 'var(--success)';
+            
+            L.circle([spot.lat, spot.lng], {
+                color: color,
+                fillColor: color,
+                fillOpacity: 0.3,
+                radius: 100
+            }).addTo(map).bindPopup(`
+                <div style="font-weight: 600; color: ${color};">
+                    <i class="fas fa-traffic-light"></i> ${spot.severity} traffic
+                </div>
+            `);
+        });
+    }
+
+    // Show traffic conditions after a delay
+    setTimeout(showTrafficConditions, 2500);
+</script>

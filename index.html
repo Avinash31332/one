@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Route Calculator</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            color: #333;
+        }
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+        .control-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            width: 300px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .status-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            font-size: 14px;
+        }
+        h2 {
+            margin-top: 0;
+            color: #4285F4;
+            font-size: 1.5rem;
+        }
+        button {
+            background-color: #4285F4;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            margin: 5px 0;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #3367d6;
+        }
+        button.secondary {
+            background-color: #f1f1f1;
+            color: #333;
+        }
+        button.secondary:hover {
+            background-color: #e0e0e0;
+        }
+        .info-box {
+            background-color: #f9f9f9;
+            padding: 12px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+        }
+        .info-label {
+            font-weight: bold;
+        }
+        .info-value {
+            font-weight: normal;
+        }
+        #loading {
+            display: none;
+            color: #FBBC05;
+            font-weight: 500;
+            text-align: center;
+            margin: 10px 0;
+        }
+        .success {
+            color: #34A853;
+        }
+        .error {
+            color: #EA4335;
+        }
+        .home-icon {
+            background-color: #34A853;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+        }
+        .dest-icon {
+            background-color: #4285F4;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <div class="control-panel">
+        <h2>Route Calculator</h2>
+        
+        <div id="locationStatus" class="info-box">
+            <div class="info-row">
+                <span class="info-label">Status:</span>
+                <span id="statusText" class="info-value">Getting your location...</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Your location:</span>
+                <span id="yourLocation" class="info-value">Not set</span>
+            </div>
+        </div>
+        
+        <div class="info-box">
+            <div class="info-row">
+                <span class="info-label">Destination:</span>
+                <span id="destinationLocation" class="info-value">Not set</span>
+            </div>
+        </div>
+        
+        <div id="routeInfo" class="info-box" style="display: none;">
+            <div class="info-row">
+                <span class="info-label">Distance:</span>
+                <span id="roadDistance" class="info-value">0 km</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Travel Time:</span>
+                <span id="travelTime" class="info-value">0 mins</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">ETA:</span>
+                <span id="etaTime" class="info-value">-</span>
+            </div>
+        </div>
+        
+        <div id="loading">Calculating route...</div>
+        
+        <button id="editHomeBtn" class="secondary" style="display: none;">Edit Home Location</button>
+        <button id="clearRouteBtn" style="display: none;">Clear Route</button>
+    </div>
+    
+    <div class="status-bar">
+        <span id="coordinates">Lat: 0, Lng: 0</span>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet PolylineDecorator for route arrows -->
+    <script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js"></script>
+    <script>
+        // Initialize the map
+        const map = L.map('map').setView([0, 0], 2);
+        
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Map elements
+        let homeMarker = null;
+        let destinationMarker = null;
+        let routeLine = null;
+        let routeDecorator = null;
+        let homeCircle = null;
+        let isEditingHome = false;
+        
+        // DOM elements
+        const statusText = document.getElementById('statusText');
+        const yourLocation = document.getElementById('yourLocation');
+        const destinationLocation = document.getElementById('destinationLocation');
+        const roadDistance = document.getElementById('roadDistance');
+        const travelTime = document.getElementById('travelTime');
+        const etaTime = document.getElementById('etaTime');
+        const routeInfo = document.getElementById('routeInfo');
+        const loading = document.getElementById('loading');
+        const editHomeBtn = document.getElementById('editHomeBtn');
+        const clearRouteBtn = document.getElementById('clearRouteBtn');
+        const coordinates = document.getElementById('coordinates');
+        
+        // Improved time formatting function
+        function formatTime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const remainingSeconds = seconds % 60;
+            
+            if (hours > 0) {
+                return `${hours}h ${minutes}m`;
+            } else if (minutes > 0) {
+                return `${minutes} min${minutes !== 1 ? 's' : ''}`;
+            } else {
+                return `${remainingSeconds} sec${remainingSeconds !== 1 ? 's' : ''}`;
+            }
+        }
+        
+        // Calculate ETA based on current time and duration
+        function calculateETA(durationInSeconds) {
+            const now = new Date();
+            const arrivalTime = new Date(now.getTime() + durationInSeconds * 1000);
+            
+            // Format as HH:MM AM/PM
+            let hours = arrivalTime.getHours();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12; // the hour '0' should be '12'
+            const minutes = arrivalTime.getMinutes().toString().padStart(2, '0');
+            
+            return `${hours}:${minutes} ${ampm}`;
+        }
+        
+        // Format distance (meters to km)
+        function formatDistance(meters) {
+            return (meters / 1000).toFixed(1) + ' km';
+        }
+        
+        // Format coordinates
+        function formatCoords(lat, lng) {
+            return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        }
+        
+        // Get road distance and time using OSRM API
+        async function calculateRoute(start, end) {
+            loading.style.display = 'block';
+            routeInfo.style.display = 'none';
+            
+            try {
+                const response = await fetch(
+                    `https://router.project-osrm.org/route/v1/driving/` +
+                    `${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`
+                );
+                
+                const data = await response.json();
+                
+                if (data.routes && data.routes[0]) {
+                    // Clear previous route if exists
+                    if (routeLine) map.removeLayer(routeLine);
+                    if (routeDecorator) map.removeLayer(routeDecorator);
+                    
+                    // Draw the new route
+                    const routeCoordinates = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
+                    routeLine = L.polyline(routeCoordinates, {
+                        color: '#4285F4',
+                        weight: 5,
+                        opacity: 0.8
+                    }).addTo(map);
+                    
+                    // Add direction arrows
+                    routeDecorator = L.polylineDecorator(routeLine, {
+                        patterns: [
+                            {
+                                offset: '50%',
+                                repeat: '100px',
+                                symbol: L.Symbol.arrowHead({
+                                    pixelSize: 10,
+                                    pathOptions: {
+                                        color: '#4285F4',
+                                        fillOpacity: 0.8,
+                                        weight: 0
+                                    }
+                                })
+                            }
+                        ]
+                    }).addTo(map);
+                    
+                    // Update UI with route info
+                    roadDistance.textContent = formatDistance(data.routes[0].distance);
+                    travelTime.textContent = formatTime(data.routes[0].duration);
+                    etaTime.textContent = calculateETA(data.routes[0].duration);
+                    routeInfo.style.display = 'block';
+                    
+                    // Fit map to show entire route
+                    map.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
+                    
+                    statusText.textContent = "Route calculated";
+                    statusText.className = "info-value success";
+                }
+            } catch (error) {
+                console.error("Error fetching route:", error);
+                statusText.textContent = "Route calculation failed";
+                statusText.className = "info-value error";
+                etaTime.textContent = "-";
+            } finally {
+                loading.style.display = 'none';
+                clearRouteBtn.style.display = 'block';
+            }
+        }
+        
+        // Set home location
+        function setHomeLocation(lat, lng) {
+            if (homeMarker) map.removeLayer(homeMarker);
+            if (homeCircle) map.removeLayer(homeCircle);
+            
+            homeMarker = L.marker([lat, lng], {
+                icon: L.divIcon({
+                    className: 'home-icon',
+                    iconSize: [24, 24]
+                }),
+                draggable: isEditingHome,
+                title: "Your Location"
+            }).addTo(map)
+            .bindPopup("Your location")
+            .on('dragend', function() {
+                yourLocation.textContent = formatCoords(
+                    homeMarker.getLatLng().lat,
+                    homeMarker.getLatLng().lng
+                );
+                if (destinationMarker) {
+                    calculateRoute(
+                        homeMarker.getLatLng(),
+                        destinationMarker.getLatLng()
+                    );
+                }
+            });
+            
+            // Add accuracy circle
+            homeCircle = L.circle([lat, lng], {
+                color: '#34A853',
+                fillColor: '#34A853',
+                fillOpacity: 0.2,
+                radius: 50
+            }).addTo(map);
+            
+            yourLocation.textContent = formatCoords(lat, lng);
+            editHomeBtn.style.display = 'block';
+            
+            if (destinationMarker) {
+                calculateRoute(
+                    {lat: lat, lng: lng},
+                    destinationMarker.getLatLng()
+                );
+            }
+        }
+        
+        // Set destination location
+        function setDestination(lat, lng) {
+            if (destinationMarker) map.removeLayer(destinationMarker);
+            
+            destinationMarker = L.marker([lat, lng], {
+                icon: L.divIcon({
+                    className: 'dest-icon',
+                    iconSize: [24, 24]
+                }),
+                draggable: true,
+                title: "Destination"
+            }).addTo(map)
+            .bindPopup("Destination")
+            .on('dragend', function() {
+                destinationLocation.textContent = formatCoords(
+                    destinationMarker.getLatLng().lat,
+                    destinationMarker.getLatLng().lng
+                );
+                if (homeMarker) {
+                    calculateRoute(
+                        homeMarker.getLatLng(),
+                        destinationMarker.getLatLng()
+                    );
+                }
+            });
+            
+            destinationLocation.textContent = formatCoords(lat, lng);
+            
+            if (homeMarker) {
+                calculateRoute(
+                    homeMarker.getLatLng(),
+                    {lat: lat, lng: lng}
+                );
+            }
+        }
+        
+        // Clear route
+        function clearRoute() {
+            if (destinationMarker) {
+                map.removeLayer(destinationMarker);
+                destinationMarker = null;
+            }
+            if (routeLine) {
+                map.removeLayer(routeLine);
+                routeLine = null;
+            }
+            if (routeDecorator) {
+                map.removeLayer(routeDecorator);
+                routeDecorator = null;
+            }
+            
+            destinationLocation.textContent = "Not set";
+            routeInfo.style.display = 'none';
+            clearRouteBtn.style.display = 'none';
+            etaTime.textContent = "-";
+        }
+        
+        // Toggle home location editing
+        function toggleEditHome() {
+            isEditingHome = !isEditingHome;
+            
+            if (isEditingHome) {
+                homeMarker.dragging.enable();
+                homeMarker.setOpacity(0.8);
+                editHomeBtn.textContent = "Save Home Location";
+                statusText.textContent = "Drag the home marker to adjust";
+                statusText.className = "info-value";
+            } else {
+                homeMarker.dragging.disable();
+                homeMarker.setOpacity(1);
+                editHomeBtn.textContent = "Edit Home Location";
+                statusText.textContent = "Home location updated";
+                statusText.className = "info-value success";
+                yourLocation.textContent = formatCoords(
+                    homeMarker.getLatLng().lat,
+                    homeMarker.getLatLng().lng
+                );
+                
+                if (destinationMarker) {
+                    calculateRoute(
+                        homeMarker.getLatLng(),
+                        destinationMarker.getLatLng()
+                    );
+                }
+            }
+        }
+        
+        // Initialize geolocation
+        function initGeolocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        
+                        setHomeLocation(lat, lng);
+                        map.setView([lat, lng], 15);
+                        
+                        statusText.textContent = "Location found";
+                        statusText.className = "info-value success";
+                    },
+                    (error) => {
+                        console.error("Geolocation error:", error);
+                        // Fallback to London
+                        setHomeLocation(51.505, -0.09);
+                        map.setView([51.505, -0.09], 13);
+                        
+                        statusText.textContent = "Using default location";
+                        statusText.className = "info-value error";
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
+            } else {
+                // Geolocation not supported
+                setHomeLocation(51.505, -0.09);
+                map.setView([51.505, -0.09], 13);
+                
+                statusText.textContent = "Geolocation not supported";
+                statusText.className = "info-value error";
+            }
+        }
+        
+        // Event listeners
+        editHomeBtn.addEventListener('click', toggleEditHome);
+        clearRouteBtn.addEventListener('click', clearRoute);
+        
+        map.on('click', function(e) {
+            if (!isEditingHome) {
+                setDestination(e.latlng.lat, e.latlng.lng);
+            }
+        });
+        
+        map.on('mousemove', function(e) {
+            coordinates.textContent = `Lat: ${e.latlng.lat.toFixed(4)}, Lng: ${e.latlng.lng.toFixed(4)}`;
+        });
+        
+        // Initialize the application
+        window.addEventListener('load', initGeolocation);
+    </script>
+</body>
+</html>

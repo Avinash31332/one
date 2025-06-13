@@ -1,0 +1,71 @@
+.admin-login-wrapper {
+    position: relative;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    animation: backgroundSlide 20s ease infinite;
+  }
+  
+  @keyframes backgroundSlide {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  
+  .login-card {
+    z-index: 2;
+    width: 100%;
+    max-width: 420px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 1rem;
+    padding: 2rem;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    backdrop-filter: blur(10px);
+  }
+  
+  .animate-fade-in {
+    animation: fadeInUp 1s ease-out forwards;
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  
+  @keyframes fadeInUp {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .svg-shape {
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    opacity: 0.3;
+    animation: float 12s ease-in-out infinite alternate;
+    z-index: 1;
+  }
+  
+  .svg-shape.top-left {
+    top: -100px;
+    left: -100px;
+  }
+  
+  .svg-shape.bottom-right {
+    bottom: -100px;
+    right: -100px;
+  }
+  
+  @keyframes float {
+    0% {
+      transform: scale(1) translateY(0px);
+    }
+    100% {
+      transform: scale(1.05) translateY(20px);
+    }
+  }
+  
+
+  
