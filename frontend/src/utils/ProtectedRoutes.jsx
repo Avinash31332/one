@@ -2,7 +2,7 @@ import axios from "axios";
 import { Outlet, Navigate } from "react-router-dom";
 
 function ProtectedRoutes() {
-  const response = axios.get("http://localhost:3000", {
+  const response = axios.get("https://one-6hcr.onrender.com", {
     withCredentials: true,
   });
   return response ? <Outlet /> : <Navigate to={"/"} />;
